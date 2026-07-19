@@ -34,6 +34,13 @@ repo, or any task where a structured tree is overkill.
 - `out_dir` where `spec/` will be written (defaults to `./spec-out/<repo-name>/`)
 - `depth` — `quick` | `normal` (default) | `deep`. Affects how exhaustive
   per-file analysis is. `quick` skips test-file deep dives.
+- `scope` — `whole` (default) | `single-module <name>` | `single-file <path>`.
+  For repos >30 modules you almost always want a focused scope; a full
+  scan on a large repo can blow the budget. Pick by intent: pick the
+  module that most users touch (e.g. `console.py` for `rich`).
+  When you pick anything other than `whole`, note the choice at the top
+  of `AGENTS.md` and write `specs/_scope.md` listing the modules you did
+  NOT cover (one line each is enough).
 
 ## Workflow (the agent MUST follow in order)
 
@@ -70,6 +77,12 @@ Before per-file reading, identify:
 
 If the repo has 30+ top-level files, do this with a quick scan, not full read.
 
+**Lazy-import note:** many real-world modules import dependencies *inside*
+function bodies (`from .jupyter import display` inside a method). A top-of-file
+`grep` misses these. Re-run the import scan after step 4 reveals them; any
+module that imports lazily MUST be listed in `architecture-rules.md` with the
+trigger site.
+
 ### 4. Per-file deep read (lazy rule: read all source and all tests)
 
 This is the core step. **Do not skim.** For every source file and every
@@ -96,8 +109,17 @@ Mine the codebase for:
 - Test framework and patterns (fixture style, mocking, parametrization).
 - Build / lint commands (from `package.json scripts`, `tox.ini`,
   `Makefile`, `.github/workflows/`).
+- `# pragma: no cover` markers — they encode platform-conditional code
+  (e.g. Windows-only branches). Note them in `architecture-rules.md` so
+  the rebuild agent knows gaps are intentional.
 
 Verification: every inferred rule is sourced — quote the file/line.
+
+**Files that own I/O (printing, network, filesystem) MUST produce an
+entry in `architecture-rules.md` covering:** exception-to-exit policy,
+`SystemExit` paths, std-stream side effects (`os.dup2`, broken-pipe
+handling). A rebuild that misses these will pass unit tests and fail in
+production.
 
 ### 6. Build the functional inventory
 
@@ -145,7 +167,17 @@ File rules:
   strings (greetings, error prefixes, log formats), byte-for-byte. The
   rebuild agent must not have to infer punctuation from a checklist.
 - Each spec MUST spell out the exit-code prefix for CLI error paths if
-  applicable (e.g. `error: <message>` to stderr).
+  applicable (e.g. `error: <message>` to stderr). If the module has **no
+  CLI entry**, substitute: list every exception type it raises with
+  byte-exact messages for non-`DebugError` ones.
+- A `if __name__ == "__main__":` block in any source file is **NEVER part
+  of the contract** — record it in `layout/src.map.md` with
+  `role: self-demo, not API`. A rebuild must omit it.
+- For every `Protocol` / `ABC` declared in the scanned source, list every
+  abstract / duck-typed method in the spec's `R-` section, with the
+  caller dispatch site (e.g. `hasattr(x, '__rich_console__')`). Protocol
+  contracts are silently invisible to importers; the spec must carry
+  them.
 - `conventions/*.md` cites files and line numbers wherever it states a rule
   — every rule must be evidence-backed.
 - `inventory/functional-checklist.md` is plain markdown checklist,
@@ -177,6 +209,10 @@ Before declaring done:
 5. **Skipping tests.** Tests reveal the project's true contract. Read them.
 6. **Missing functional checklist.** Without it the build phase has no
    grading key. Don't ship without one.
+7. **Treating lazy imports as trivial / missing them in the dep graph.**
+   Many real-world modules defer heavy imports (`display`, `windows-only`,
+   `LegacyWindowsTerm`) into method bodies. A top-of-file `import` grep
+   reports zero deps. Re-scan after step 4 catches them.
 
 ## Verification Checklist
 
@@ -192,6 +228,10 @@ Before declaring done:
       genuinely small repo, in which case state why).
 - [ ] `AGENTS.md` is written and links the rest.
 - [ ] `tree <out_dir>/spec` matches the layout in step 7.
+- [ ] If scope ≠ whole, `specs/_scope.md` exists and lists every skipped
+      module with a one-line reason.
+- [ ] If any scanned file declared a `Protocol`/`ABC`, each abstract /
+      duck-typed method appears as an `R-` requirement somewhere.
 
 ## One-Shot Recipe
 
