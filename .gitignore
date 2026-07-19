@@ -1,0 +1,14 @@
+# Build outputs
+dist/
+build/
+*.pyc
+__pycache__/
+.venv/
+venv/
+
+# Spec output (when running locally)
+spec-out/
+
+# Editor
+.vscode/
+.idea/
