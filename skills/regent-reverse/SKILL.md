@@ -1,7 +1,7 @@
 ---
 name: regent-reverse
-description: Use when the user asks to reverse-engineer a Git repository into a structured natural-language spec, write a structured spec for any codebase, or generate "repo → spec/" output. Triggers on phrases like "还原这个仓库", "把仓库转成 spec", "reverse engineer <url>", "生成结构化说明", or when the user supplies a repo URL/path and asks REgent to describe it. Drives the agent to deeply explore the entire codebase (every file, every test, every config) before writing the spec tree.
-version: 0.1.0
+description: Use when the user asks to reverse-engineer a Git repository into a structured natural-language spec, write a structured spec for any codebase, or generate "repo → spec/" output. Triggers on phrases like "还原这个仓库", "把仓库转成 spec", "reverse engineer <url>", "生成结构化说明", or when the user supplies a repo URL/path and asks REgent to describe it. Drives the agent to deeply explore the entire codebase (every file, every test, every config) before writing the spec tree. Works across Python, Rust, Go, and other languages — the rules are language-aware only where they have to be (e.g. `trait` vs `Protocol` vs interface).
+version: 0.3.0
 author: REgent contributors
 license: GPL-3.0-or-later
 metadata:
@@ -81,7 +81,9 @@ If the repo has 30+ top-level files, do this with a quick scan, not full read.
 function bodies (`from .jupyter import display` inside a method). A top-of-file
 `grep` misses these. Re-run the import scan after step 4 reveals them; any
 module that imports lazily MUST be listed in `architecture-rules.md` with the
-trigger site.
+trigger site. **Rust analog:** `use …` inside function bodies AND
+`#[cfg(target_os = "…")]` platform gates — both are visibility-class
+boundaries and must be re-grepped after step 4.
 
 ### 4. Per-file deep read (lazy rule: read all source and all tests)
 
@@ -112,6 +114,11 @@ Mine the codebase for:
 - `# pragma: no cover` markers — they encode platform-conditional code
   (e.g. Windows-only branches). Note them in `architecture-rules.md` so
   the rebuild agent knows gaps are intentional.
+- **Compile-time backend selection:** if the project has a feature-flag
+  mechanism (Rust `[features]` in `Cargo.toml`, Python `extras_require`,
+  Go build tags), list each feature, what it gates, and the default
+  state in `conventions/dev-env.md`. Hidden compile-time paths break a
+  rebuild silently.
 
 Verification: every inferred rule is sourced — quote the file/line.
 
@@ -119,7 +126,8 @@ Verification: every inferred rule is sourced — quote the file/line.
 entry in `architecture-rules.md` covering:** exception-to-exit policy,
 `SystemExit` paths, std-stream side effects (`os.dup2`, broken-pipe
 handling). A rebuild that misses these will pass unit tests and fail in
-production.
+production. For Rust the analog scan keywords are `std::fs`, `std::io::Write`,
+`process::exit`, `#[cfg(target_os = "…")]` — same rule, different syntax.
 
 ### 6. Build the functional inventory
 
@@ -172,12 +180,16 @@ File rules:
   byte-exact messages for non-`DebugError` ones.
 - A `if __name__ == "__main__":` block in any source file is **NEVER part
   of the contract** — record it in `layout/src.map.md` with
-  `role: self-demo, not API`. A rebuild must omit it.
-- For every `Protocol` / `ABC` declared in the scanned source, list every
-  abstract / duck-typed method in the spec's `R-` section, with the
-  caller dispatch site (e.g. `hasattr(x, '__rich_console__')`). Protocol
-  contracts are silently invisible to importers; the spec must carry
-  them.
+  `role: self-demo, not API`. A rebuild must omit it. **Language-agnostic
+  rule:** any *self-test* or self-demo entry point is not contract —
+  in Rust this is `#[cfg(test)] mod tests { … }` blocks or test-only
+  helper `fn`s. The real `fn main()` of a binary crate IS contract.
+- For every `Protocol` / `ABC` / `trait` / interface declared in the scanned
+  source, list every abstract / duck-typed method in the spec's `R-`
+  section, with the caller dispatch site (`hasattr(x, '__rich_console__')`
+  in Python, `&dyn Trait` / `impl<T: Trait> Trait for &T` blanket impls in
+  Rust). Protocol contracts are silently invisible to importers; the spec
+  must carry them.
 - `conventions/*.md` cites files and line numbers wherever it states a rule
   — every rule must be evidence-backed.
 - `inventory/functional-checklist.md` is plain markdown checklist,
@@ -202,7 +214,8 @@ Before declaring done:
 2. **Hallucinating APIs.** Public APIs MUST come from the actual source. If
    you cannot confirm a name exists, omit it; never invent.
 3. **Generic conventions.** "Use camelCase" without evidence is noise. Every
-   rule needs a sample file or config that backs it.
+   rule needs a sample file or config that backs it (`rustfmt.toml` line 1,
+   `.editorconfig`, `[tool.black]`, etc.) — language-agnostic, citation-based.
 4. **Conflating original code with spec.** The spec describes what the
    project *does and why* — not line-for-line code. If `src.map.md` starts
    copying source, rewrite it.
@@ -230,8 +243,12 @@ Before declaring done:
 - [ ] `tree <out_dir>/spec` matches the layout in step 7.
 - [ ] If scope ≠ whole, `specs/_scope.md` exists and lists every skipped
       module with a one-line reason.
-- [ ] If any scanned file declared a `Protocol`/`ABC`, each abstract /
-      duck-typed method appears as an `R-` requirement somewhere.
+- [ ] If any scanned file declared a `Protocol`/`ABC`/`trait`/interface,
+      every abstract / required method appears as an `R-` requirement
+      somewhere.
+- [ ] If the project has compile-time feature flags (`[features]`,
+      build tags, optional deps), every feature is documented in
+      `conventions/dev-env.md` with what it gates.
 
 ## One-Shot Recipe
 
