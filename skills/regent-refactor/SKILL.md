@@ -1,7 +1,7 @@
 ---
 name: regent-refactor
 description: Use when the user asks to refactor an existing project against a modified spec, regenerate code from a changed spec, or refactor a "shit-mountain" codebase (屎山重构) back to documented intent. Triggers on phrases like "refactor to spec", "按新 spec 改", "regenerate from <spec_dir> with new requirements", or "重写这个屎山". Pairs with regent-reverse + regent-build — reverse produces a spec, the user edits specs/ to change intent, this skill rewrites the codebase to match the edited spec. Grade key is the same as regent-build: both functional-checklist.md and inventory/test-oracle.md must stay green.
-version: 0.1.0
+version: 0.2.0
 author: REgent contributors
 license: GPL-3.0-or-later
 metadata:
@@ -69,6 +69,12 @@ authoritative for intent.
   - Else, ask the user what changed. Do **not** guess.
 - Record the diff in a working note (in-memory; do not commit a
   scratch file unless the user asks).
+- **Pure-clarification edits are legitimate.** If the diff only
+  adds precision to an existing requirement without changing
+  inputs, outputs, error paths, or exit codes, classify as
+  `Pure clarification` per §2 and skip code edits entirely. The
+  downstream symbol list (§2) can be empty; that is a passing
+  outcome, not a skipped one.
 
 ### 2. Classify the change
 
@@ -99,9 +105,12 @@ If `strategy: in-place`:
   to commit or stash.
 - If clean, snapshot via `git worktree add ../<source_dir>-snapshot
   <HEAD>~0` OR a tarball. The snapshot is the rollback point if
-  this skill corrupts the tree.
+  this skill corrupts the tree. **Mandatory: snapshot MUST succeed
+  before the rewriter is spawned.**
 
-If `strategy: side-by-side`: copy `source_dir` to `out_dir`.
+If `strategy: side-by-side`: copy `source_dir` to `out_dir`. The
+original `source_dir` itself is the rollback; no separate snapshot
+needed.
 
 ### 4. Spawn the rewriter subagent
 
@@ -134,11 +143,24 @@ After the rewriter reports:
   the result (call the function with the documented input, check
   the documented output).
 - ALL THREE must be green: pytest, checklist, oracle.
+- **Clarification-derived oracle:** if the spec edit added a new
+  `R-`/`S-` clause, the rewriter MUST also add an `### <symbol>`
+  block to `test-oracle.md` (or a scratch verification command) that
+  exercises the clarification explicitly, even when no code change
+  was needed. Without this, the clarification is a documented intent
+  that no test actually pins.
 
 ### 6. Decide
 
-- **All three green** → state the changed symbols (diff summary),
-  confirm to the user that the spec edit is now in the code.
+- **All three green AND `git diff --stat source_dir out_dir` is empty:**
+  this is the **clarification-only** outcome. Report
+  *"Clarification-only refactor: zero source changes, spec edit is
+  documented intent only."* Treat this as a successful outcome, not
+  a failure to edit. Show the new oracle entry as the proof that
+  the clarification is exercised.
+- **All three green AND the diff is non-empty:** state the changed
+  symbols (file:line diff summary) and confirm the spec edit is
+  now in the code.
 - **Anything red** → do not auto-rollback. Report which item, the
   actual vs expected, and the offending code path. The user
   decides whether to: (a) tweak the rewriter's diff, (b) amend the
