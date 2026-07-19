@@ -141,6 +141,11 @@ File rules:
 - Each `specs/*.spec.md` uses OpenSpec-lite form:
   `## Purpose` / `## Requirements` (with SHOULD/MUST) / `## Scenarios`
   (WHEN...THEN... form).
+- Each spec MUST include a literal table of any human-facing output
+  strings (greetings, error prefixes, log formats), byte-for-byte. The
+  rebuild agent must not have to infer punctuation from a checklist.
+- Each spec MUST spell out the exit-code prefix for CLI error paths if
+  applicable (e.g. `error: <message>` to stderr).
 - `conventions/*.md` cites files and line numbers wherever it states a rule
   — every rule must be evidence-backed.
 - `inventory/functional-checklist.md` is plain markdown checklist,
