@@ -1,7 +1,7 @@
 ---
 name: regent-reverse
 description: Use when the user asks to reverse-engineer a Git repository into a structured natural-language spec, write a structured spec for any codebase, or generate "repo → spec/" output. Triggers on phrases like "还原这个仓库", "把仓库转成 spec", "reverse engineer <url>", "生成结构化说明", or when the user supplies a repo URL/path and asks REgent to describe it. Drives the agent to deeply explore the entire codebase (every file, every test, every config) before writing the spec tree. Works across Python, Rust, Go, and other languages — the rules are language-aware only where they have to be (e.g. `trait` vs `Protocol` vs interface).
-version: 0.3.0
+version: 0.4.0
 author: REgent contributors
 license: GPL-3.0-or-later
 metadata:
@@ -141,6 +141,25 @@ This list becomes `inventory/functional-checklist.md` and is the **build
 phase's grading key**. Aim for 10–50 entries depending on repo size; small
 repo may have fewer.
 
+**Distill a test-oracle side by side.** For each public function or method,
+identify the *one* test in the original test suite that most strongly pins
+its contract — the one with the most discriminating input and the
+strictest expectation. Record its essentials (input, expected output, the
+property it pins) into `inventory/test-oracle.md` as a second, finer-grained
+grading key. Purpose:
+
+- `functional-checklist.md` = black-box behaviour ("does the CLI exit 0?").
+- `test-oracle.md` = white-box per-function invariants (the exact
+  whitespace literal `"   "` that triggers `ValueError`, the exact
+  precedence of `case_insensitive` vs `multi_line`, the exact failure
+  message when a missing style is requested).
+
+`test-oracle.md` is **not** a copy of the original `test_*.py`. It is the
+*semantically meaning-bearing subset* of the test suite — one or two
+fixtures per public surface, no scaffolding. Copy-and-paste of the
+original test files defeats the purpose: the rebuild should re-derive
+the test from the oracle, not transcribe it.
+
 ### 7. Emit spec tree
 
 Write to `<out_dir>`:
@@ -160,7 +179,8 @@ spec/
 │   ├── dev-env.md       # Build / test / lint commands
 │   └── architecture-rules.md
 └── inventory/
-    └── functional-checklist.md
+    ├── functional-checklist.md  # Black-box behaviour, build grading key
+    └── test-oracle.md            # White-box per-function invariants
 ```
 
 File rules:
@@ -195,6 +215,11 @@ File rules:
 - `inventory/functional-checklist.md` is plain markdown checklist,
   machine-greppable. Each entry has a `- [ ]` form and a verification
   command.
+- `inventory/test-oracle.md` contains per-function/per-method fixtures
+  in the form `### <symbol>` / `- input: …` / `- expects: …` /
+  `- pins: …`. One entry per public surface that has a discriminating
+  test in the original suite. **Do not include fixture scaffolding,
+  mocking, parametrization tables, or anything not directly load-bearing.**
 - Spec does not pin `pyproject.toml` metadata fields (description,
   author), `LICENSE` body, or `README.md` content — those are
   presentation, not contract. The rebuild invents them.
@@ -229,6 +254,11 @@ Before declaring done:
    Many real-world modules defer heavy imports (`display`, `windows-only`,
    `LegacyWindowsTerm`) into method bodies. A top-of-file `import` grep
    reports zero deps. Re-scan after step 4 catches them.
+8. **Copying the original test suite into `test-oracle.md`.** The oracle
+   is the load-bearing subset, not a transcription. If a test reads
+   exactly like `tests/test_x.py`, the agent is shipping the original
+   tests under a new name and the rebuild is no longer a roundtrip —
+   it's a copy.
 
 ## Verification Checklist
 
@@ -242,6 +272,10 @@ Before declaring done:
 - [ ] `conventions/*.md` cite file:line for every rule.
 - [ ] `inventory/functional-checklist.md` has 10+ entries (or fewer if
       genuinely small repo, in which case state why).
+- [ ] `inventory/test-oracle.md` exists and has at least one entry per
+      public surface that had a discriminating test in the original suite
+      (i.e. the inverse — every entry should be retraceable to a real
+      test in the source).
 - [ ] `AGENTS.md` is written and links the rest.
 - [ ] `tree <out_dir>/spec` matches the layout in step 7.
 - [ ] If scope ≠ whole, `specs/_scope.md` exists and lists every skipped

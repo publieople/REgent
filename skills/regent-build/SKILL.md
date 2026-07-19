@@ -1,20 +1,23 @@
 ---
 name: regent-build
-description: Use when the user asks to rebuild a project from a REgent spec tree, run "spec → code + tests" roundtrip, or verify that a reverse-engineered spec is sufficient to reconstruct the original. Triggers on phrases like "按 spec 重建", "build from spec", "reconstruct from <spec_dir>", "verify spec sufficiency", or just "build". Pairs with `regent-reverse` — reverse produces the spec, this skill consumes it and produces runnable code that grades against the spec's `functional-checklist.md`. Works across languages via hermes subagent delegation.
-version: 0.1.0
+description: Use when the user asks to rebuild a project from a REgent spec tree, run "spec → code + tests" roundtrip, or verify that a reverse-engineered spec is sufficient to reconstruct the original. Triggers on phrases like "按 spec 重建", "build from spec", "reconstruct from <spec_dir>", "verify spec sufficiency", or just "build". Pairs with `regent-reverse` — reverse produces the spec, this skill consumes it and produces runnable code graded against both `functional-checklist.md` (black-box) and `inventory/test-oracle.md` (white-box, per-function invariants). Works across languages via hermes subagent delegation.
+version: 0.2.0
 author: REgent contributors
 license: GPL-3.0-or-later
 metadata:
   hermes:
-    tags: [regent, build, subagent, reverse-roundtrip]
-    related_skills: [regent-reverse, plan, executing-plans]
----
+    tags: [regent, build, subagent, reverse-roundtrip, test-oracle]
+    related_skills: [regent-reverse, plan, executing-plans]---
 
 # regent-build
 
 Consume a REgent spec tree and produce runnable code that satisfies the spec's
-`R-`/`S-` requirements and every line of `functional-checklist.md`. This is
-the second half of the roundtrip pipeline (the first half is `regent-reverse`).
+`R-`/`S-` requirements, every line of `functional-checklist.md`, AND every
+entry of `inventory/test-oracle.md`. The oracle is the second, white-box
+grading key — it pins per-function invariants that a black-box checklist
+cannot catch (e.g. `greet("  ")` must raise `ValueError`, not strip).
+This is the second half of the roundtrip pipeline (the first half is
+`regent-reverse`).
 
 ## When to Use
 
@@ -56,6 +59,10 @@ Before spawning anything, check the spec itself is ready:
 - `inventory/functional-checklist.md` exists and has at least 5
   `- [ ]` entries (fewer → spec too thin for a meaningful build;
   recommend running `regent-refine` first instead).
+- `inventory/test-oracle.md` exists and contains at least one entry
+  per public surface that the rebuild must satisfy on the white-box
+  level (input/expects/pins triples). Without this, the rebuild's own
+  tests are the only test set — and the roundtrip is self-graded.
 - If `specs/_scope.md` exists, read it. Default strategy is
   scoped (not whole-repo).
 - Target language/build-tool: read it from `conventions/dev-env.md`.
@@ -104,6 +111,16 @@ After the subagent reports done:
 - Cross-check `functional-checklist.md` line by line against the
   rebuild artifact (run each command / import each module as the
   checklist prescribes).
+- Read `inventory/test-oracle.md`. For each `### <symbol>` block,
+  call the rebuilt function/method with the documented `input` and
+  assert equality with the documented `expects`. Tick or fail with
+  the actual vs expected.
+- The two lists together (black-box checklist + white-box oracle)
+  must BOTH be green before declaring PASS. A green checklist
+  with a red oracle means the rebuild ships the right CLI but got
+  the function semantics wrong (e.g. `greet("  ")` strips instead
+  of raising) — the spec test-oracle catches what the behavioural
+  checklist cannot.
 - Tick or fail each item; record evidence (output, exit code, log
   line).
 
@@ -160,6 +177,9 @@ Before declaring done, verify:
       agent defaults).
 - [ ] Every `- [ ]` line in `functional-checklist.md` has tick or
       fail reason; nothing skipped silently.
+- [ ] Every `### <symbol>` block in `inventory/test-oracle.md` has
+      been executed against the rebuild with PASS or FAIL evidence;
+      nothing skipped silently.
 - [ ] Spec-debt list was produced even when the build passed.
 - [ ] The rebuild artifact was NOT edited to mask failures.
 
