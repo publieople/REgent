@@ -195,6 +195,9 @@ File rules:
 - `inventory/functional-checklist.md` is plain markdown checklist,
   machine-greppable. Each entry has a `- [ ]` form and a verification
   command.
+- Spec does not pin `pyproject.toml` metadata fields (description,
+  author), `LICENSE` body, or `README.md` content — those are
+  presentation, not contract. The rebuild invents them.
 
 ### 8. Self-review
 
