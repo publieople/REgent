@@ -1,0 +1,35 @@
+REPO ROOT (Textualize/rich) — partial; we name only those consumed by console.py
+
+rich/
+├── _export_format.py    # const CONSOLE_HTML_FORMAT, CONSOLE_SVG_FORMAT (used)
+├── _fileno.py           # get_fileno() (used in write_buffer Windows branch)
+├── _log_render.py       # FormatTimeCallable, LogRender (consumed)
+├── _null_file.py        # NULL_FILE / NullFile (consumed via file property)
+├── _windows.py          # WindowsConsoleFeatures (lazy import for VT detection)
+├── _win32_console.py    # LegacyWindowsTerm (lazy)
+├── _windows_renderer.py # legacy_windows_render() (lazy)
+├── align.py             # Align, AlignMethod (used in _collect_renderables)
+├── color.py             # ColorSystem, blend_rgb (used in detection, SVG)
+├── control.py           # Control (show_cursor, alt_screen, clear, home, title, bell)
+├── emoji.py             # EmojiVariant
+├── highlighter.py       # NullHighlighter, ReprHighlighter (defaults)
+├── markup.py            # render as render_markup (used by render_str)
+├── measure.py           # Measurement, measure_renderables
+├── pager.py             # Pager, SystemPager
+├── pretty.py            # Pretty + is_expandable (lazy in _collect_renderables)
+├── protocol.py          # rich_cast
+├── region.py            # Region
+├── screen.py            # Screen
+├── segment.py           # Segment (the segment buffer currency)
+├── style.py             # Style, StyleType
+├── styled.py            # Styled
+├── terminal_theme.py    # DEFAULT_TERMINAL_THEME, SVG_EXPORT_THEME, TerminalTheme
+├── text.py              # Text, TextType
+├── theme.py             # Theme, ThemeStack
+├── themes.py            # themes.DEFAULT
+├── errors.py            # NotRenderableError, NoAltScreen, MissingStyle, LiveError, StyleSyntaxError
+├── json.py              # JSON (lazy in print_json)
+├── status.py            # Status (lazy in status())
+├── traceback.py         # Traceback (lazy in print_exception)
+├── scope.py             # render_scope (lazy in log())
+└── console.py           # ★ THIS FILE ★

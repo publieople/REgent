@@ -1,0 +1,20 @@
+reverse-fixture-tiny/   (8 files; counts exclude .git/)
+├── LICENSE                  [doc]      MIT license stub
+├── README.md                [doc]      Quick start for greeter
+├── pyproject.toml           [config]   setuptools build + console script
+├── src/
+│   └── greeter/
+│       ├── __init__.py      [code]     package facade (12 LOC)
+│       ├── core.py          [code]     greet / shout_greet (24 LOC)
+│       ├── formats.py       [code]     format functions (19 LOC)
+│       └── cli.py           [code]     argparse + main() (31 LOC)
+└── tests/
+    └── test_greeter.py      [test]     8 pytest cases (41 LOC)
+
+Tally:
+  code     = 4 files (86 LOC)
+  test     = 1 file  (41 LOC, 8 tests)
+  config   = 1 file  (pyproject.toml)
+  doc      = 2 files (README.md, LICENSE)
+  total    = 8 files
+```

@@ -1,0 +1,92 @@
+./
+├── AI_POLICY.md                    [doc, 1.8KB]      AI contribution policy
+├── COPYING                         [doc]             == LICENSE-MIT, deprecated alias
+├── Cargo.toml                      [config, 3.2KB]   workspace root + ripgrep binary crate
+├── Cargo.lock                      [build, 12.7KB]   version-locked dependency graph
+├── FAQ.md                          [doc, 42KB]
+├── GUIDE.md                        [doc, 40KB]       detailed user guide
+├── HomebrewFormula -> pkg/brew     [symlink]         excluded from package
+├── LICENSE-MIT                     [doc]             dual-license: MIT or Unlicense
+├── README.md                       [doc, 21KB]
+├── RELEASE-CHECKLIST.md            [doc]
+├── UNLICENSE                       [doc]             public-domain dedication
+├── build.rs                        [build]           pre-build script (completion codegen)
+├── rustfmt.toml                    [config]          max_width=79, use_small_heuristics="max", edition=2024
+├── .cargo/config.toml              [config]          cargo build settings
+├── .github/workflows/ci.yml        [ci]              CI pipeline
+├── .github/workflows/release.yml   [ci]              release pipeline
+├── .gitignore                      [config]
+├── .ignore                         [config]          rg's own ignore file
+├── benchsuite/                     [asset]           historical benchmark runs (excluded)
+├── ci/                             [ci]              CI helper scripts
+├── crates/                         [code]            === 9 workspace members ===
+│   ├── cli/                        [code, 8 src]     shared CLI parsing utilities
+│   ├── core/                       [code, 11 src]    binary entry, flag parsing, search wiring
+│   │   └── flags/                  [code]            HiArgs, lowargs, shell completions
+│   ├── globset/                    [code, 4 src + bench]  glob matching for --glob
+│   ├── grep/                       [code, 1 src + example]  facade crate re-exporting all matchers
+│   ├── ignore/                     [code, 8 src + tests + example]  .gitignore walker
+│   ├── matcher/                    [code, 1 src + tests]            ====== trait crate ======
+│   │   └── src/lib.rs              [code, 549]      grep_matcher::Matcher trait
+│   ├── pcre2/                      [code, 3 src]     PCRE2 backend (Cargo feature: pcre2)
+│   ├── printer/                    [code, 9 src]     output formatting (JSON, stats, hyperlinks)
+│   ├── regex/                      [code, 8 src]     ====== DEFAULT MATCHER ======
+│   │   ├── Cargo.toml              [config]          crate: grep-regex 0.1.14
+│   │   └── src/
+│   │       ├── lib.rs              [code, 18]        re-exports
+│   │       ├── matcher.rs          [code, 670]       RegexMatcher, impl Matcher        ← SCOPE TARGET
+│   │       ├── config.rs           [code, 356]       Config, ConfiguredHIR
+│   │       ├── error.rs            [code, 94]        Error, ErrorKind
+│   │       ├── ast.rs              [code, 216]       AstAnalysis
+│   │       ├── literal.rs          [code, ~670]      InnerLiterals extractor
+│   │       ├── ban.rs              [code, ~80]       banned-byte check
+│   │       ├── non_matching.rs     [code, ~110]      non-matching-byte analysis
+│   │       └── strip.rs            [code, ~140]      strip-from-match helper
+│   └── searcher/                   [code, 6 src + example]  search driver over Matcher
+├── fuzz/                           [test]            cargo-fuzz targets (fuzz_glob)
+├── pkg/                            [asset]           packaging artifacts (brew, windows)
+├── scripts/                        [ci]              dev scripts (excluded)
+└── tests/                          [test]            === integration tests for `rg` binary ===
+    ├── tests.rs                    [test, ~]         harness entry (cfg-gated binary tests)
+    ├── binary.rs                   [test]            binary-file detection
+    ├── feature.rs                  [test]            feature flag coverage
+    ├── hay.rs                      [test]            haystack search
+    ├── json.rs                     [test]            --json output
+    ├── macros.rs                   [test]            test helpers
+    ├── misc.rs                     [test]            miscellaneous
+    ├── multiline.rs                [test]            multiline matching
+    ├── regression.rs               [test]            bug regression tests
+    ├── util.rs                     [test]            shared test utilities
+    └── data/                       [asset]           fixture corpus
+
+## Tally (whole tree)
+
+| Category                 | Count |
+|--------------------------|-------|
+| Files total              | ~150  |
+| `.rs` source files       | 101   |
+| `.toml` config files     | 13    |
+| `Cargo.lock` present     | yes   |
+| Workspace members        | 9     |
+| Test files (`#[test]`)   | ~500  |
+| Fuzz targets             | 1     |
+| Integration test files   | 10    |
+| CI workflows             | 2     |
+| Build scripts (`build.rs`) | 1   |
+| Public binaries          | 1 (`rg`) |
+
+## Scope tally (covered by this spec)
+
+| Path                                | LOC |
+|-------------------------------------|-----|
+| `crates/matcher/src/lib.rs`         | 549 |
+| `crates/regex/src/lib.rs`           | 18  |
+| `crates/regex/src/matcher.rs`       | 670 |
+| `crates/regex/src/config.rs`        | 356 |
+| `crates/regex/src/error.rs`         | 94  |
+| `crates/regex/src/ast.rs`           | 216 |
+| `crates/regex/src/literal.rs`       | ~670 |
+| `crates/regex/src/ban.rs`           | ~80 |
+| `crates/regex/src/non_matching.rs`  | ~110 |
+| `crates/regex/src/strip.rs`         | ~140 |
+| **Total in scope (regex engine)**   | **~2903** |
