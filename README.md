@@ -35,6 +35,28 @@ spec/
 
 **Phase 1 (reverse) — in progress.** First repository will be reverse-engineered end-to-end before any build step is shipped.
 
+## Status
+
+**Phase 1 (reverse) — in progress.** First repository will be reverse-engineered end-to-end before any build step is shipped.
+
+## CI
+
+[![Lint SKILL.md](https://github.com/publieople/REgent/actions/workflows/lint-skill.yml/badge.svg)](https://github.com/publieople/REgent/actions/workflows/lint-skill.yml)
+[![Validate spec schema](https://github.com/publieople/REgent/actions/workflows/validate-spec-schema.yml/badge.svg)](https://github.com/publieople/REgent/actions/workflows/validate-spec-schema.yml)
+
+Two automated guards run on every push and PR:
+
+1. **SKILL.md frontmatter lint** — `effectorHQ/skill-lint-action@v1`
+   over `skills/`. Required fields are enforced; recommended fields
+   warn. Keeps `skills.sh` ingestion clean.
+2. **Spec schema validation** — `scripts/validate_spec_schema.py`
+   walks every `spec-out/<fixture>/spec/` directory in the fixed
+   fixture list and asserts the 9-file shape plus that
+   `functional-checklist.md` actually contains checkbox items.
+
+The expensive end-to-end run (LLM reverse → oracle) stays manual:
+trigger it from the Actions tab before publishing a new skill version.
+
 ## License
 
 GPL-3.0-or-later. See [LICENSE](./LICENSE).

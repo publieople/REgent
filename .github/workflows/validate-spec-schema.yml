@@ -1,0 +1,25 @@
+name: Validate spec schema
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "spec-out/**"
+      - "scripts/validate_spec_schema.py"
+      - ".github/workflows/validate-spec-schema.yml"
+  pull_request:
+    paths:
+      - "spec-out/**"
+      - "scripts/validate_spec_schema.py"
+      - ".github/workflows/validate-spec-schema.yml"
+  workflow_dispatch:
+
+jobs:
+  schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate spec-out fixtures
+        run: python3 scripts/validate_spec_schema.py
