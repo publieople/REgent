@@ -5,9 +5,13 @@ on:
     branches: [main]
     paths:
       - "skills/**/SKILL.md"
+      - "scripts/validate_skill_frontmatter.py"
+      - ".github/workflows/lint-skill.yml"
   pull_request:
     paths:
       - "skills/**/SKILL.md"
+      - "scripts/validate_skill_frontmatter.py"
+      - ".github/workflows/lint-skill.yml"
   workflow_dispatch:
 
 jobs:
@@ -16,7 +20,5 @@ jobs:
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@v4
-      - name: Lint SKILL.md frontmatter
-        uses: effectorHQ/skill-lint-action@v1
-        with:
-          path: "skills"
+      - name: Validate SKILL.md frontmatter (stdlib YAML subset)
+        run: python3 scripts/validate_skill_frontmatter.py skills

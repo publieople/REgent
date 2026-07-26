@@ -7,7 +7,8 @@ license: GPL-3.0-or-later
 metadata:
   hermes:
     tags: [regent, build, subagent, reverse-roundtrip, test-oracle]
-    related_skills: [regent-reverse, plan, executing-plans]---
+    related_skills: [regent-reverse, plan, executing-plans]
+---
 
 # regent-build
 
